@@ -2,113 +2,76 @@ using System.Collections.Generic;
 using MiniRace;
 using UnityEngine;
 
-namespace Car
+namespace MiniRace
 {
     public class WheelsHandler : MonoBehaviour
     {
-        #region Serialized Fields
+        #region --- Members ---
 
-        [SerializeField] private List<WheelInfo> _wheels = new List<WheelInfo>();
+        [Header("Settings")]
+        [SerializeField] private WheelInfo[] _wheels;
 
-        #endregion
-
-        #region Private Fields
-
-        // Список колес для управления поворотом
+        [Header("Variables")]
         private List<WheelInfo> _steeringWheels = new List<WheelInfo>();
 
         #endregion
 
-        #region Public Properties
+        #region --- Properties ---
 
-        /// <summary>
-        /// Текущее значение оси поворота (-1 до 1)
-        /// </summary>
         public float SteeringAxis { get; private set; }
 
         #endregion
 
-        #region Public Methods
+        #region --- Control Methods ---
 
-        /// <summary>
-        /// Инициализация данных о трении колес
-        /// </summary>
         public void Initialize()
         {
-            // Инициализируем каждое колесо
-            foreach (var wheel in _wheels)
+            for (int i = 0; i < _wheels.Length; i++)
             {
-                wheel.Initialize();
+                _wheels[i].Initialize();
 
-                // Добавляем колесо в список поворачиваемых, если оно помечено как управляемое
-                if (wheel.IsSteeringWheel)
+                if (_wheels[i].IsSteeringWheel)
                 {
-                    _steeringWheels.Add(wheel);
+                    _steeringWheels.Add(_wheels[i]);
                 }
             }
         }
-
-        /// <summary>
-        /// Рассчитать текущую скорость автомобиля в км/ч
-        /// </summary>
+        public void TurnLeft(float steeringSpeed, int maxSteeringAngle)
+        {
+            Turn(-1, steeringSpeed, maxSteeringAngle);
+        }
+        public void TurnRight(float steeringSpeed, int maxSteeringAngle)
+        {
+            Turn(1, steeringSpeed, maxSteeringAngle);
+        }
         public float CalculateCarSpeed()
         {
-            // Используем первое колесо для расчета скорости
-            if (_wheels.Count > 0)
+            if (_wheels.Length > 0)
             {
                 return 2 * Mathf.PI * _wheels[0].Collider.radius * _wheels[0].Collider.rpm * 60 / 1000;
             }
             return 0f;
         }
-
-        /// <summary>
-        /// Поворот колес влево
-        /// </summary>
-        public void TurnLeft(float steeringSpeed, int maxSteeringAngle)
+        private void Turn(float direction, float steeringSpeed, int maxSteeringAngle)
         {
-            SteeringAxis = SteeringAxis - (Time.deltaTime * 10f * steeringSpeed);
-            if (SteeringAxis < -1f)
-            {
-                SteeringAxis = -1f;
-            }
+            SteeringAxis = SteeringAxis + (Time.deltaTime * 10f * steeringSpeed * direction);
+            SteeringAxis = Mathf.Clamp(SteeringAxis, -1f, 1f);
 
             var steeringAngle = SteeringAxis * maxSteeringAngle;
-            foreach (var wheel in _steeringWheels)
+            for (int i = 0; i < _steeringWheels.Count; i++)
             {
-                wheel.Collider.steerAngle = Mathf.Lerp(wheel.Collider.steerAngle, steeringAngle, steeringSpeed);
+                _steeringWheels[i].Collider.steerAngle = Mathf.Lerp(_steeringWheels[i].Collider.steerAngle, steeringAngle, steeringSpeed);
             }
         }
-
-        /// <summary>
-        /// Поворот колес вправо
-        /// </summary>
-        public void TurnRight(float steeringSpeed, int maxSteeringAngle)
-        {
-            SteeringAxis = SteeringAxis + (Time.deltaTime * 10f * steeringSpeed);
-            if (SteeringAxis > 1f)
-            {
-                SteeringAxis = 1f;
-            }
-
-            var steeringAngle = SteeringAxis * maxSteeringAngle;
-            foreach (var wheel in _steeringWheels)
-            {
-                wheel.Collider.steerAngle = Mathf.Lerp(wheel.Collider.steerAngle, steeringAngle, steeringSpeed);
-            }
-        }
-
-        /// <summary>
-        /// Сброс поворота колес
-        /// </summary>
         public void ResetSteeringAngle(float steeringSpeed)
         {
             if (SteeringAxis < 0f)
             {
-                SteeringAxis = SteeringAxis + (Time.deltaTime * 10f * steeringSpeed);
+                SteeringAxis += Time.deltaTime * 10f * steeringSpeed;
             }
             else if (SteeringAxis > 0f)
             {
-                SteeringAxis = SteeringAxis - (Time.deltaTime * 10f * steeringSpeed);
+                SteeringAxis -= Time.deltaTime * 10f * steeringSpeed;
             }
 
             if (_steeringWheels.Count > 0 && Mathf.Abs(_steeringWheels[0].Collider.steerAngle) < 1f)
@@ -116,68 +79,48 @@ namespace Car
                 SteeringAxis = 0f;
             }
 
-            var steeringAngle = SteeringAxis * 0; // устанавливаем угол в 0
-            foreach (var wheel in _steeringWheels)
+            var steeringAngle = SteeringAxis * 0;
+            for (int i = 0; i < _steeringWheels.Count; i++)
             {
-                wheel.Collider.steerAngle = Mathf.Lerp(wheel.Collider.steerAngle, steeringAngle, steeringSpeed);
+                _steeringWheels[i].Collider.steerAngle = Mathf.Lerp(_steeringWheels[i].Collider.steerAngle, steeringAngle, steeringSpeed);
             }
         }
-
-        /// <summary>
-        /// Применение ускорения к колесам
-        /// </summary>
         public void ApplyMotorTorque(float motorTorque)
         {
-            foreach (var wheel in _wheels)
+            for (int i = 0; i < _wheels.Length; i++)
             {
-                if (wheel.ApplyMotorTorque)
+                if (_wheels[i].ApplyMotorTorque)
                 {
-                    wheel.Collider.motorTorque = motorTorque;
+                    _wheels[i].Collider.motorTorque = motorTorque;
                 }
             }
         }
-
-        /// <summary>
-        /// Применение торможения к колесам
-        /// </summary>
         public void ApplyBrakeTorque(float brakeTorque)
         {
-            foreach (var wheel in _wheels)
+            for (int i = 0; i < _wheels.Length; i++)
             {
-                wheel.Collider.brakeTorque = brakeTorque;
+                _wheels[i].Collider.brakeTorque = brakeTorque;
             }
         }
-
-        /// <summary>
-        /// Уменьшение сцепления колес с дорогой (для заноса)
-        /// </summary>
         public void ReduceTraction(float driftingAxis, int handbrakeDriftMultiplier)
         {
-            foreach (var wheel in _wheels)
+            for (int i = 0; i < _wheels.Length; i++)
             {
-                wheel.ReduceTraction(driftingAxis, handbrakeDriftMultiplier);
+                _wheels[i].ReduceTraction(driftingAxis, handbrakeDriftMultiplier);
             }
         }
-
-        /// <summary>
-        /// Восстановление сцепления колес с дорогой
-        /// </summary>
         public void RestoreTraction()
         {
-            foreach (var wheel in _wheels)
+            for (int i = 0; i < _wheels.Length; i++)
             {
-                wheel.RestoreTraction();
+                _wheels[i].RestoreTraction();
             }
         }
-
-        /// <summary>
-        /// Анимация вращения 3D моделей колес
-        /// </summary>
         public void AnimateWheelMeshes()
         {
-            foreach (var wheel in _wheels)
+            for (int i = 0; i < _wheels.Length; i++)
             {
-                wheel.AnimateWheelMesh();
+                _wheels[i].AnimateWheelMesh();
             }
         }
 

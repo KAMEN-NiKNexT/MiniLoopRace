@@ -1,9 +1,16 @@
+using System;
 using UnityEngine;
 
 namespace MiniRace
 {
     public class KeyboardCarInput : MonoBehaviour, ICarInput
     {
+        #region --- Events ---
+
+        public event Action OnInputUpdated;
+
+        #endregion
+
         #region --- Properties ---
 
         public float ThrottleInput { get; private set; }
@@ -36,6 +43,7 @@ namespace MiniRace
             SteeringInput = steering;
 
             IsHandbrakeActive = Input.GetKey(KeyCode.Space);
+            OnInputUpdated?.Invoke();
         }
 
         #endregion

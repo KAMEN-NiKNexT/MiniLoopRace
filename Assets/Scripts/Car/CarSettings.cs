@@ -3,17 +3,17 @@ using UnityEngine;
 namespace MiniRace
 {
     [CreateAssetMenu(fileName = "NewCarSettings", menuName = "MiniRace/Cars/Car Settings", order = 1)]
-    public class CarSettings
+    public class CarSettings : ScriptableObject
     {
         #region --- Members ---
 
         [Header("Speed Settings")]
 
-        [SerializeField][Range(20, 300)] private int _maxSpeed;
+        [SerializeField][Range(20, 3000)] private int _maxSpeed;
         [SerializeField][Range(10, 120)] private int _maxReverseSpeed;
-        [SerializeField][Range(1, 10)] private int _accelerationMultiplier;
+        [SerializeField][Range(1, 100000)] private int _accelerationMultiplier;
         [SerializeField][Range(1, 10)] private int _decelerationMultiplier;
-        [SerializeField][Range(10, 45)] private int _maxSteeringAngle;
+        [SerializeField][Range(5, 90)] private int _maxSteeringAngle;
         [SerializeField][Range(0.1f, 1f)] private float _steeringSpeed;
         [SerializeField][Range(100, 600)] private int _brakeForce;
         [SerializeField][Range(1, 10)] private int _handbrakeDriftMultiplier;

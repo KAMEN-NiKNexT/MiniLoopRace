@@ -14,13 +14,13 @@ namespace MiniRace
 
         #region --- Abstract Methods ---
 
-        protected abstract void InitializeCar();
-        public abstract void Accelerate(float throttleInput);
-        public abstract void Reverse(float throttleInput);
-        public abstract void Steer(float steeringInput);
-        public abstract void ApplyHandbrake();
-        public abstract void ReleaseHandbrake();
-        public abstract void ReleaseThrottle();
+        protected abstract void Initialize();
+        protected abstract void Accelerate(float throttleInput);
+        protected abstract void Reverse(float throttleInput);
+        protected abstract void Steer(float steeringInput);
+        protected abstract void ApplyHandbrake();
+        protected abstract void ReleaseHandbrake();
+        protected abstract void ReleaseThrottle();
         protected abstract void UpdateCarData();
         protected abstract void ApplyBrakes();
         protected abstract void DecelerateCar();
