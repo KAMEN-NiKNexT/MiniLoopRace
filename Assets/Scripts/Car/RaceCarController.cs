@@ -81,52 +81,61 @@ namespace MiniRace
             if (Mathf.Abs(_localVelocityX) > _valueForDrift) IsDrifting = true;
             else IsDrifting = false;
 
-            _throttleAxis += Time.deltaTime * 3f;
+            // If currently moving backwards, brake first
+            if (_localVelocityZ < -0.5f)
+            {
+                ApplyBrakes();
+                return;
+            }
+
+            _throttleAxis += Time.deltaTime * 15f;
             _throttleAxis = Mathf.Min(_throttleAxis, 1f);
 
-            if (_localVelocityZ < -1f) ApplyBrakes();
+            if (Mathf.RoundToInt(CurrentSpeed) < _carSettings.MaxSpeed)
+            {
+                float motorTorque = _carSettings.AccelerationMultiplier * 50f * _throttleAxis;
+                _wheelsHandler.ApplyBrakeTorque(0);
+                _wheelsHandler.ApplyMotorTorque(motorTorque);
+            }
             else
             {
-                if (Mathf.RoundToInt(CurrentSpeed) < _carSettings.MaxSpeed)
-                {
-                    float motorTorque = _carSettings.AccelerationMultiplier * 50f * _throttleAxis;
-                    _wheelsHandler.ApplyBrakeTorque(0);
-                    _wheelsHandler.ApplyMotorTorque(motorTorque);
-                }
-                else
-                {
-                    _wheelsHandler.ApplyMotorTorque(0);
-                }
+                _wheelsHandler.ApplyMotorTorque(0);
             }
         }
+
         protected override void Reverse(float throttleInput)
         {
             if (Mathf.Abs(_localVelocityX) > _valueForDrift) IsDrifting = true;
             else IsDrifting = false;
 
-            _throttleAxis -= Time.deltaTime * 3f;
+            // If currently moving forwards, brake first
+            Debug.LogError(_localVelocityZ);
+            if (_localVelocityZ > 0.5f)
+            {
+                ApplyBrakes();
+                return;
+            }
+
+            _throttleAxis -= Time.deltaTime * 95f;
             _throttleAxis = Mathf.Max(_throttleAxis, -1f);
 
-            if (_localVelocityZ > 1f) ApplyBrakes();
+            if (Mathf.Abs(Mathf.RoundToInt(CurrentSpeed)) < _carSettings.MaxReverseSpeed)
+            {
+                float motorTorque = _carSettings.AccelerationMultiplier * 50f * _throttleAxis;
+                _wheelsHandler.ApplyBrakeTorque(0);
+                _wheelsHandler.ApplyMotorTorque(motorTorque);
+            }
             else
             {
-                if (Mathf.Abs(Mathf.RoundToInt(CurrentSpeed)) < _carSettings.MaxReverseSpeed)
-                {
-                    float motorTorque = _carSettings.AccelerationMultiplier * 50f * _throttleAxis;
-                    _wheelsHandler.ApplyBrakeTorque(0);
-                    _wheelsHandler.ApplyMotorTorque(motorTorque);
-                }
-                else
-                {
-                    _wheelsHandler.ApplyMotorTorque(0);
-                }
+                _wheelsHandler.ApplyMotorTorque(0);
             }
         }
 
         protected override void Steer(float steeringInput)
         {
-            if (steeringInput < 0) _wheelsHandler.TurnLeft(_carSettings.SteeringSpeed, _carSettings.MaxSteeringAngle);
-            else if (steeringInput > 0) _wheelsHandler.TurnRight(_carSettings.SteeringSpeed, _carSettings.MaxSteeringAngle);
+            float realSteeringSpeed = _carSettings.SteeringSpeed * Mathf.Abs(steeringInput);
+            if (steeringInput < 0) _wheelsHandler.TurnLeft(realSteeringSpeed, _carSettings.MaxSteeringAngle);
+            else if (steeringInput > 0) _wheelsHandler.TurnRight(realSteeringSpeed, _carSettings.MaxSteeringAngle);
             else if (steeringInput == 0 && _wheelsHandler.SteeringAxis != 0f) _wheelsHandler.ResetSteeringAngle(_carSettings.SteeringSpeed);
         }
         protected override void ApplyHandbrake()
@@ -140,6 +149,7 @@ namespace MiniRace
             else IsDrifting = false;
 
             _wheelsHandler.ReduceTraction(_driftingAxis, _carSettings.HandbrakeDriftMultiplier);
+            ApplyBrakes();
             IsTractionLocked = true;
         }
 

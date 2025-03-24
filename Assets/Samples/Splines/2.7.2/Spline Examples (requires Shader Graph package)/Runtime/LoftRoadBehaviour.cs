@@ -87,7 +87,7 @@ namespace Unity.Splines.Examples
                     return m_Mesh;
 
                 m_Mesh = new Mesh();
-                GetComponent<MeshRenderer>().sharedMaterial = Resources.Load<Material>("Road");
+                //GetComponent<MeshRenderer>().sharedMaterial = Resources.Load<Material>("Road");
                 return m_Mesh;
             }
         }
@@ -110,7 +110,7 @@ namespace Unity.Splines.Examples
                 m_LoftRoadsRequested = false;
             }
         }
-        
+
         public void OnEnable()
         {
             // Avoid to point to an existing instance when duplicating the GameObject

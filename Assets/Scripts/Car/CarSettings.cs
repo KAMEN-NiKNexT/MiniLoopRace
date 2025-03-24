@@ -14,8 +14,8 @@ namespace MiniRace
         [SerializeField][Range(1, 100000)] private int _accelerationMultiplier;
         [SerializeField][Range(1, 10)] private int _decelerationMultiplier;
         [SerializeField][Range(5, 90)] private int _maxSteeringAngle;
-        [SerializeField][Range(0.1f, 1f)] private float _steeringSpeed;
-        [SerializeField][Range(100, 600)] private int _brakeForce;
+        [SerializeField][Range(0.1f, 1000f)] private float _steeringSpeed;
+        [SerializeField][Range(100, 6000)] private int _brakeForce;
         [SerializeField][Range(1, 10)] private int _handbrakeDriftMultiplier;
         [SerializeField] private Vector3 _bodyMassCenter;
 

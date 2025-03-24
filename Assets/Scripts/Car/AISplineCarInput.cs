@@ -40,8 +40,8 @@ namespace MiniRace
 
         private RaceCarController _carController;
         private Rigidbody _carRigidbody;
-        private float _currentSteeringInput;
-        private float _currentThrottleInput = 1f;
+        private float _steeringInput;
+        private float _throttleInput;
         private bool _isHandbrakeActive;
         private float _currentSpeedVariation;
         private Vector3 _targetPoint;
@@ -71,8 +71,8 @@ namespace MiniRace
 
         #region --- Properties ---
 
-        public float ThrottleInput { get => _currentThrottleInput; }
-        public float SteeringInput { get => _currentSteeringInput; }
+        public float ThrottleInput { get => _throttleInput; }
+        public float SteeringInput { get => _steeringInput; }
         public bool IsHandbrakeActive { get => _isHandbrakeActive; }
 
         #endregion
@@ -111,28 +111,31 @@ namespace MiniRace
 
         public void UpdateInput()
         {
-            UpdateRacingLine();
+            //UpdateRacingLine();
             UpdateTargetPoints();
             CheckForNearbyObstacles();
 
-            if (_isRecovering)
-            {
-                PerformRecovery();
-            }
-            else
-            {
-                CalculateSteeringInput();
-                CalculateThrottleAndBrakeInput();
+            CalculateSteeringInput();
+            CalculateThrottleAndBrakeInput();
 
-                if (!_isPerformingAggressiveManeuver)
-                {
-                    PerformAggressiveManeuversIfNeeded();
-                }
-
-                ApplyRealisticInputLimitations();
-            }
-
-            DetectOffTrackRecovery();
+            //if (_isRecovering)
+            //{
+            //    PerformRecovery();
+            //}
+            //else
+            //{
+            //    CalculateSteeringInput();
+            //    CalculateThrottleAndBrakeInput();
+            //
+            //    if (!_isPerformingAggressiveManeuver)
+            //    {
+            //        PerformAggressiveManeuversIfNeeded();
+            //    }
+            //
+            //    ApplyRealisticInputLimitations();
+            //}
+            //
+            //DetectOffTrackRecovery();
             OnInputUpdated?.Invoke();
         }
 
@@ -160,9 +163,15 @@ namespace MiniRace
         }
         private void UpdateTargetPoints()
         {
-            if (_targetPoint != Vector3.zero && Vector3.Distance(transform.position, _targetPoint) < _waypointReachedDistance)
+            if (Vector3.Distance(transform.position, _targetPoint) < _waypointReachedDistance)
             {
                 _currentSplinePercent = _nextSplinePercent;
+            }
+            else if (Vector3.Distance(transform.position, _nextTargetPoint) < _waypointReachedDistance && _nextSplinePercent != _currentSplinePercent)
+            {
+                _currentSplinePercent = _nextSplinePercent;
+                UpdateTargetPoints();
+                return;
             }
 
             float3 position, tangent, up;
@@ -177,6 +186,7 @@ namespace MiniRace
             _nextSplinePercent = Mathf.Repeat(_currentSplinePercent + (dynamicLookAhead / _pathSpline.Spline.GetLength()), 1f);
             _pathSpline.Evaluate(_nextSplinePercent, out position, out tangent, out up);
 
+            Vector3 vectorPosition2 = new Vector3(position.x, position.y, position.z);
             Vector3 currentDirection = _tangentDirection;
             Vector3 nextDirection = tangent;
             float cornerSharpness = Vector3.Angle(currentDirection, nextDirection);
@@ -189,7 +199,9 @@ namespace MiniRace
                 insideCornerOffset *= 1 + cornerCutting;
             }
 
-            _nextTargetPoint = vectorPosition + insideCornerOffset;
+            _nextTargetPoint = vectorPosition2 + insideCornerOffset;
+
+
         }
 
         private void CheckForNearbyObstacles()
@@ -210,34 +222,82 @@ namespace MiniRace
         {
             Vector3 directionToTarget = _targetPoint - transform.position;
             Vector3 localDirection = transform.InverseTransformDirection(directionToTarget);
-            float targetAngle = Mathf.Atan2(localDirection.x, localDirection.z) * Mathf.Rad2Deg;
+            float distanceToTarget = directionToTarget.magnitude;
+            float currentTargetAngle = Mathf.Atan2(localDirection.x, localDirection.z) * Mathf.Rad2Deg;
 
-            // Добавляем учет скорости - на высокой скорости поворачиваем плавнее
-            float speedFactor = Mathf.Clamp01(_carController.CurrentSpeed / 50f);
-            float steeringResponse = Mathf.Lerp(1.0f, 0.6f, speedFactor);
+            Vector3 directionToNextTarget = _nextTargetPoint - transform.position;
+            Vector3 localNextDirection = transform.InverseTransformDirection(directionToNextTarget);
+            float nextTargetAngle = Mathf.Atan2(localNextDirection.x, localNextDirection.z) * Mathf.Rad2Deg;
 
-            // Если идет занос, учитываем боковую скорость при расчете рулежки
+            float steeringStrength = Mathf.Lerp(0.2f, 1f, 1f - Mathf.Clamp01(distanceToTarget / (_waypointReachedDistance * 5)));
+            float targetAngle = Mathf.Lerp(currentTargetAngle, nextTargetAngle, steeringStrength * 0.5f);
+
+            Debug.DrawRay(transform.position, directionToTarget, Color.red, 2);
+            Debug.DrawRay(transform.position, directionToNextTarget, Color.green, 2);
+            Debug.DrawRay(transform.position, transform.forward * 5f, Color.blue, 2);
+
+            // Обработка заноса
             bool isDrifting = _carController.IsDrifting;
             if (isDrifting)
             {
                 Vector3 localVelocity = transform.InverseTransformDirection(_carRigidbody.linearVelocity);
                 float driftAngle = Mathf.Atan2(localVelocity.x, localVelocity.z) * Mathf.Rad2Deg;
 
-                // Противоруление при заносе
                 if (Mathf.Abs(driftAngle) > 5)
                 {
                     float counterSteerFactor = _driftExitSteeringFactor * Mathf.Sign(driftAngle);
-                    targetAngle *= (1 - Mathf.Abs(counterSteerFactor));
+                    targetAngle *= 1 - Mathf.Abs(counterSteerFactor);
                     targetAngle -= driftAngle * counterSteerFactor;
                 }
             }
 
-            float avoidanceModifier = CalculateAvoidanceModifier();
-            float rawSteeringAmount = Mathf.Clamp(targetAngle / 45f * steeringResponse + avoidanceModifier, -1f, 1f);
+            float rawSteeringAmount = Mathf.Clamp(targetAngle / 45f, -1f, 1f);
 
-            // Плавное изменение руления для реалистичности
-            _currentSteeringInput = Mathf.Lerp(_lastSteeringInput, rawSteeringAmount, 1 - _steeringDamping);
-            _lastSteeringInput = _currentSteeringInput;
+            float avoidanceModifier = CalculateAvoidanceModifier();
+            rawSteeringAmount = Mathf.Clamp(rawSteeringAmount + avoidanceModifier, -1f, 1f);
+            _steeringInput = Mathf.Lerp(_lastSteeringInput, rawSteeringAmount, steeringStrength);
+            _lastSteeringInput = _steeringInput;
+        }
+        private void CalculateThrottleAndBrakeInput()
+        {
+            Vector3 currentForward = _tangentDirection;
+            Vector3 nextForward = (_nextTargetPoint - _targetPoint).normalized;
+            float turnAngle = Vector3.Angle(currentForward, nextForward);
+
+            float turnFactor = 1f;
+            if (turnAngle > 10)
+            {
+                turnFactor = Mathf.Clamp01(1f - (turnAngle / _maxBrakingAngle));
+            }
+
+            bool shouldBrake = false;
+            float speedAdjustedTurnAngle = turnAngle * (_carController.CurrentSpeed / 10f);
+
+            if (speedAdjustedTurnAngle > 30f)
+            {
+                shouldBrake = true;
+                turnFactor *= 0.5f;
+            }
+
+            float targetThrottle = Mathf.Lerp(_minSpeedOnTurn, 1f, turnFactor) + _currentSpeedVariation;
+            targetThrottle = Mathf.Clamp01(targetThrottle);
+
+            if (shouldBrake && !_wasBraking)
+            {
+                _throttleInput = -0.5f;
+                _wasBraking = true;
+            }
+            else if (shouldBrake)
+            {
+                _throttleInput = -0.8f;
+            }
+            else
+            {
+                _throttleInput = Mathf.Lerp(_throttleInput, targetThrottle, 1);
+                _wasBraking = false;
+            }
+
+            _isHandbrakeActive = turnAngle > _handbrakeOnSharpTurnThreshold && _carController.CurrentSpeed > 20f;
         }
 
         private float CalculateAvoidanceModifier()
@@ -259,105 +319,21 @@ namespace MiniRace
 
                 // Более интенсивное избегание при приближении
                 float proximityFactor = 1 - Mathf.Clamp01(distance / _collisionDetectionDistance);
-                float forwardProximityScale = Mathf.Clamp01(localObstacleDir.z / 5f); // Сильнее реагируем на близкие по Z препятствия
-
+                float forwardProximityScale = Mathf.Clamp01(localObstacleDir.z); // Сильнее реагируем на близкие по Z препятствия
                 float strength = _avoidanceStrength * proximityFactor * proximityFactor * forwardProximityScale;
 
-                // В зависимости от агрессивности и расположения машины иногда стремимся в сторону соперника
-                if (UnityEngine.Random.value < _aggressionFactor * 0.1f && distance < _collisionDetectionDistance * 0.7f)
-                {
-                    strength *= -2.0f; // Направляемся на соперника для тарана
-                    _isPerformingAggressiveManeuver = true;
-                    _timeUntilNextAggression = 1.0f; // Короткая агрессивная фаза
-                }
-                else
-                {
-                    // Обычное избегание
-                    avoidanceModifier -= side * strength;
-                }
+                //if (UnityEngine.Random.value < _aggressionFactor * 0.1f && distance < _collisionDetectionDistance * 0.7f)
+                //{
+                //    strength *= -2.0f; // Направляемся на соперника для тарана
+                //    _isPerformingAggressiveManeuver = true;
+                //    _timeUntilNextAggression = 1.0f; // Короткая агрессивная фаза
+                //}
+                //else
+                //{
+                avoidanceModifier -= side * strength;
+                //}
             }
-
             return Mathf.Clamp(avoidanceModifier, -1f, 1f);
-        }
-
-        private void CalculateThrottleAndBrakeInput()
-        {
-            // Определяем насколько крутой предстоящий поворот
-            Vector3 currentForward = _tangentDirection;
-            Vector3 nextForward = (_nextTargetPoint - _targetPoint).normalized;
-            float turnAngle = Vector3.Angle(currentForward, nextForward);
-
-            // Рассчитываем насколько нужно замедлиться в зависимости от крутизны поворота
-            float turnFactor = 1f;
-            if (turnAngle > 10)
-            {
-                turnFactor = Mathf.Clamp01(1f - (turnAngle / _maxBrakingAngle));
-            }
-
-            // Более интенсивное торможение на крутых поворотах в соответствии со скоростью
-            bool shouldBrake = false;
-            float speedAdjustedTurnAngle = turnAngle * (_carController.CurrentSpeed / 40f);
-
-            if (speedAdjustedTurnAngle > 45f)
-            {
-                shouldBrake = true;
-                // На очень крутых поворотах тормозим резче
-                turnFactor *= 0.5f;
-            }
-
-            // Определяем базовую скорость с учетом поворота и случайных вариаций для реализма
-            float targetThrottle = Mathf.Lerp(_minSpeedOnTurn, 1f, turnFactor) + _currentSpeedVariation;
-            targetThrottle *= _speedFactor;
-
-            // Плавно меняем дроссель для реализма
-            if (shouldBrake && !_wasBraking)
-            {
-                // Резкое торможение в начале
-                _currentThrottleInput = -0.5f;
-                _wasBraking = true;
-            }
-            else if (shouldBrake)
-            {
-                // Продолжаем торможение, но плавно регулируем
-                _currentThrottleInput = Mathf.Lerp(_currentThrottleInput, -0.8f, Time.deltaTime * 2f);
-            }
-            else
-            {
-                // Плавная регулировка дросселя
-                _currentThrottleInput = Mathf.Lerp(_currentThrottleInput, targetThrottle, Time.deltaTime * 3f);
-                _wasBraking = false;
-            }
-
-            // Управление ручным тормозом для дрифта на крутых поворотах
-            _isHandbrakeActive = turnAngle > _handbrakeOnSharpTurnThreshold && _carController.CurrentSpeed > 30f;
-
-            // На крутых поворотах на высокой скорости иногда используем дрифт даже если угол меньше порога
-            if (!_isHandbrakeActive && turnAngle > _handbrakeOnSharpTurnThreshold * 0.7f &&
-                _carController.CurrentSpeed > 45f && UnityEngine.Random.value < 0.3f)
-            {
-                _isHandbrakeActive = true;
-            }
-        }
-
-        private void ApplyRealisticInputLimitations()
-        {
-            // Симуляция человеческих ограничений - нельзя одновременно полностью рулить и полностью газовать/тормозить
-            float steeringMagnitude = Mathf.Abs(_currentSteeringInput);
-            if (steeringMagnitude > 0.7f && Mathf.Abs(_currentThrottleInput) > 0.8f)
-            {
-                // При сильном рулении немного сбрасываем газ/тормоз
-                _currentThrottleInput *= (1f - (steeringMagnitude - 0.7f));
-            }
-
-            // Небольшая случайная вариация входных данных для реализма
-            if (UnityEngine.Random.value < 0.05f)
-            {
-                _currentSteeringInput += UnityEngine.Random.Range(-0.05f, 0.05f);
-                _currentSteeringInput = Mathf.Clamp(_currentSteeringInput, -1f, 1f);
-
-                _currentThrottleInput += UnityEngine.Random.Range(-0.03f, 0.03f);
-                _currentThrottleInput = Mathf.Clamp(_currentThrottleInput, -1f, 1f);
-            }
         }
 
         private void PerformAggressiveManeuversIfNeeded()
@@ -400,16 +376,16 @@ namespace MiniRace
                 // Боковой удар - подрезание
                 float sideHitDirection = Mathf.Sign(localDirToCar.x);
 
-                _currentSteeringInput = sideHitDirection * 0.8f;
-                _currentThrottleInput = 1f;
+                _steeringInput = sideHitDirection * 0.8f;
+                _throttleInput = 1f;
 
                 ApplyHitForce(targetCar, transform.right * sideHitDirection, _sideHitForce);
             }
             else if (IsValidTargetForRearHit(localDirToCar))
             {
                 // Удар сзади - толкание
-                _currentSteeringInput = Mathf.Clamp(localDirToCar.x * 2f, -1f, 1f);
-                _currentThrottleInput = 1f;
+                _steeringInput = Mathf.Clamp(localDirToCar.x * 2f, -1f, 1f);
+                _throttleInput = 1f;
 
                 ApplyHitForce(targetCar, transform.forward, _frontHitForce);
             }
@@ -487,7 +463,7 @@ namespace MiniRace
         private void HandleCarCollision(Collision collision)
         {
             // Снижаем скорость после столкновения
-            _currentThrottleInput *= 0.4f;
+            _throttleInput *= 0.4f;
 
             // Повышаем агрессивность после столкновения
             _aggressionFactor = Mathf.Clamp01(_aggressionFactor + 0.15f);
@@ -507,7 +483,7 @@ namespace MiniRace
                     Vector3 localImpact = transform.InverseTransformDirection(collision.impulse);
                     if (Mathf.Abs(localImpact.x) > Mathf.Abs(localImpact.z))
                     {
-                        _currentSteeringInput = -Mathf.Sign(localImpact.x) * 0.7f;
+                        _steeringInput = -Mathf.Sign(localImpact.x) * 0.7f;
                     }
                 }
             }
@@ -524,13 +500,13 @@ namespace MiniRace
             if (Mathf.Abs(localContact.x) > Mathf.Abs(localContact.z))
             {
                 // Боковой контакт
-                _currentSteeringInput = Mathf.Sign(localContact.x) * 0.8f;
-                _currentThrottleInput = 0.8f;
+                _steeringInput = Mathf.Sign(localContact.x) * 0.8f;
+                _throttleInput = 0.8f;
             }
             else
             {
                 // Контакт спереди/сзади
-                _currentThrottleInput = localContact.z > 0 ? -0.7f : 0.7f;
+                _throttleInput = localContact.z > 0 ? -0.7f : 0.7f;
             }
 
             _carRigidbody.AddForce(escapeDirection * 2f, ForceMode.Impulse);
@@ -543,7 +519,7 @@ namespace MiniRace
             _isOffRacingLine = distanceToRacingLine > _waypointReachedDistance * 2.5f;
 
             // Если машина далеко от трассы или застряла
-            bool stucked = _carController.CurrentSpeed < 5f && Mathf.Abs(_currentThrottleInput) > 0.5f;
+            bool stucked = _carController.CurrentSpeed < 5f && Mathf.Abs(_throttleInput) > 0.5f;
 
             if ((_isOffRacingLine || stucked) && !_isRecovering)
             {
@@ -570,7 +546,7 @@ namespace MiniRace
 
             // Резкое руление в сторону гоночной линии
             float targetAngle = Mathf.Atan2(localDirection.x, localDirection.z) * Mathf.Rad2Deg;
-            _currentSteeringInput = Mathf.Clamp(targetAngle / 30f * _recoverySteeringStrength, -1f, 1f);
+            _steeringInput = Mathf.Clamp(targetAngle / 30f * _recoverySteeringStrength, -1f, 1f);
 
             // В зависимости от положения относительно трассы - газ или тормоз
             float distanceToRacingLine = directionToTarget.magnitude;
@@ -578,7 +554,7 @@ namespace MiniRace
             {
                 // Достаточно близко к трассе, завершаем восстановление
                 _isRecovering = false;
-                _currentThrottleInput = 0.5f;
+                _throttleInput = 0.5f;
             }
             else
             {
@@ -586,12 +562,12 @@ namespace MiniRace
                 if (dot > 0)
                 {
                     // Машина направлена к трассе - газуем
-                    _currentThrottleInput = 0.8f;
+                    _throttleInput = 0.8f;
                 }
                 else
                 {
                     // Машина направлена от трассы - тормозим и разворачиваемся
-                    _currentThrottleInput = -0.6f;
+                    _throttleInput = -0.6f;
                 }
             }
 

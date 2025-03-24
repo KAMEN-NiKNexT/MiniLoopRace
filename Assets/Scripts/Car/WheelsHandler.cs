@@ -54,7 +54,9 @@ namespace MiniRace
         }
         private void Turn(float direction, float steeringSpeed, int maxSteeringAngle)
         {
-            SteeringAxis = SteeringAxis + (Time.deltaTime * 10f * steeringSpeed * direction);
+            //TODO добавить механику, что чем больше скорость колёс, тем хуже идёт поворот
+
+            SteeringAxis = Time.deltaTime * 10f * steeringSpeed * direction;
             SteeringAxis = Mathf.Clamp(SteeringAxis, -1f, 1f);
 
             var steeringAngle = SteeringAxis * maxSteeringAngle;
