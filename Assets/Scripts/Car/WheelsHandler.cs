@@ -11,6 +11,7 @@ namespace MiniRace
         [Header("Settings")]
         [SerializeField] private WheelInfo[] _wheels;
 
+
         [Header("Variables")]
         private List<WheelInfo> _steeringWheels = new List<WheelInfo>();
 
@@ -34,8 +35,41 @@ namespace MiniRace
                 {
                     _steeringWheels.Add(_wheels[i]);
                 }
+
+                // Инициализация эффектов для каждого колеса
+                if (_wheels[i].DriftEffect != null) _wheels[i].DriftEffect.Stop();
+                if (_wheels[i].Skid != null)
+                {
+                    _wheels[i].Skid.emitting = false;
+                }
             }
         }
+
+        public void UpdateDriftEffects(bool isDrifing)
+        {
+            for (int i = 0; i < _wheels.Length; i++)
+            {
+                // Управление частицами дрифта
+                if (_wheels[i].DriftEffect != null)
+                {
+                    if (isDrifing)
+                    {
+                        _wheels[i].DriftEffect.Play();
+                    }
+                    else
+                    {
+                        _wheels[i].DriftEffect.Stop();
+                    }
+                }
+
+                // Управление следами от шин
+                if (_wheels[i].Skid != null)
+                {
+                    _wheels[i].Skid.emitting = isDrifing;
+                }
+            }
+        }
+
         public void TurnLeft(float steeringSpeed, int maxSteeringAngle)
         {
             Turn(-1, steeringSpeed, maxSteeringAngle);
@@ -63,8 +97,6 @@ namespace MiniRace
         }
         private void Turn(float direction, float steeringSpeed, int maxSteeringAngle)
         {
-            //TODO добавить механику, что чем больше скорость колёс, тем хуже идёт поворот
-
             SteeringAxis = Time.deltaTime * 10f * steeringSpeed * direction;
             SteeringAxis = Mathf.Clamp(SteeringAxis, -1f, 1f);
 

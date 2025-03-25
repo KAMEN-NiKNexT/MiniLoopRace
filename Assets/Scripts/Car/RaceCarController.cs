@@ -81,6 +81,7 @@ namespace MiniRace
 
             if (Mathf.Abs(_localVelocityX) > _valueForDrift) IsDrifting = true;
             else IsDrifting = false;
+            ControlDriftEffects();
 
             if (_localVelocityZ < -0.5f)
             {
@@ -109,6 +110,7 @@ namespace MiniRace
 
             if (Mathf.Abs(_localVelocityX) > _valueForDrift) IsDrifting = true;
             else IsDrifting = false;
+            ControlDriftEffects();
 
             if (_localVelocityZ > 0.5f)
             {
@@ -147,6 +149,7 @@ namespace MiniRace
 
             if (Mathf.Abs(_localVelocityX) > _valueForDrift) IsDrifting = true;
             else IsDrifting = false;
+            ControlDriftEffects();
 
             _wheelsHandler.ReduceTraction(_driftingAxis, _carSettings.HandbrakeDriftMultiplier);
 
@@ -203,6 +206,7 @@ namespace MiniRace
         {
             if (Mathf.Abs(_localVelocityX) > _valueForDrift) IsDrifting = true;
             else IsDrifting = false;
+            ControlDriftEffects();
 
             if (_throttleAxis != 0f)
             {
@@ -260,8 +264,9 @@ namespace MiniRace
             }
         }
 
-        private void UpdateEffects()
+        public void ControlDriftEffects()
         {
+            _wheelsHandler.UpdateDriftEffects(IsDrifting);
         }
 
         private void RecoverTraction()

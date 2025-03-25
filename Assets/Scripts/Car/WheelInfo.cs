@@ -11,6 +11,8 @@ namespace MiniRace
         [Header("Objects")]
         [SerializeField] private GameObject _wheelMesh;
         [SerializeField] private WheelCollider _wheelCollider;
+        [SerializeField] private ParticleSystem _driftEffect;
+        [SerializeField] private TrailRenderer _skid;
 
         [Header("Settings")]
         [SerializeField] private bool _isSteeringWheel;
@@ -27,6 +29,8 @@ namespace MiniRace
         public WheelCollider Collider { get => _wheelCollider; }
         public bool IsSteeringWheel { get => _isSteeringWheel; }
         public bool ApplyMotorTorque { get => _applyMotorTorque; }
+        public ParticleSystem DriftEffect { get => _driftEffect; }
+        public TrailRenderer Skid { get => _skid; }
 
         #endregion
 
