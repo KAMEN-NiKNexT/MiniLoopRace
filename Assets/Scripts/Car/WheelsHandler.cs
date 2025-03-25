@@ -52,6 +52,15 @@ namespace MiniRace
             }
             return 0f;
         }
+        private void Update()
+        {
+            for (int i = 0; i < _wheels.Length; i++)
+            {
+                //Debug.LogError(_wheels[i].Collider.motorTorque + " motorTorque " + i);
+                //Debug.LogError(_wheels[i].Collider.brakeTorque + " brakeTorque " + i);
+                //Debug.LogError(_wheels[i].Collider.rpm + " rpm " + i);
+            }
+        }
         private void Turn(float direction, float steeringSpeed, int maxSteeringAngle)
         {
             //TODO добавить механику, что чем больше скорость колёс, тем хуже идёт поворот

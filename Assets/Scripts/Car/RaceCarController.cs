@@ -49,11 +49,7 @@ namespace MiniRace
             else
             {
                 ReleaseThrottle();
-
-                if (!_isDecelerating && !_carInput.IsHandbrakeActive)
-                {
-                    StartDecelerationAsync().Forget();
-                }
+                if (!_isDecelerating && !_carInput.IsHandbrakeActive) StartDecelerationAsync().Forget();
             }
 
             Steer(_carInput.SteeringInput);
@@ -78,22 +74,23 @@ namespace MiniRace
         }
         protected override void Accelerate(float throttleInput)
         {
+            StopDeceleration();
+
             if (Mathf.Abs(_localVelocityX) > _valueForDrift) IsDrifting = true;
             else IsDrifting = false;
 
-            // If currently moving backwards, brake first
             if (_localVelocityZ < -0.5f)
             {
                 ApplyBrakes();
                 return;
             }
 
-            _throttleAxis += Time.deltaTime * 15f;
+            _throttleAxis += throttleInput;
             _throttleAxis = Mathf.Min(_throttleAxis, 1f);
 
             if (Mathf.RoundToInt(CurrentSpeed) < _carSettings.MaxSpeed)
             {
-                float motorTorque = _carSettings.AccelerationMultiplier * 50f * _throttleAxis;
+                float motorTorque = _carSettings.AccelerationMultiplier * _throttleAxis;
                 _wheelsHandler.ApplyBrakeTorque(0);
                 _wheelsHandler.ApplyMotorTorque(motorTorque);
             }
@@ -105,23 +102,23 @@ namespace MiniRace
 
         protected override void Reverse(float throttleInput)
         {
+            StopDeceleration();
+
             if (Mathf.Abs(_localVelocityX) > _valueForDrift) IsDrifting = true;
             else IsDrifting = false;
 
-            // If currently moving forwards, brake first
-            Debug.LogError(_localVelocityZ);
             if (_localVelocityZ > 0.5f)
             {
                 ApplyBrakes();
                 return;
             }
 
-            _throttleAxis -= Time.deltaTime * 95f;
+            _throttleAxis += throttleInput;
             _throttleAxis = Mathf.Max(_throttleAxis, -1f);
 
             if (Mathf.Abs(Mathf.RoundToInt(CurrentSpeed)) < _carSettings.MaxReverseSpeed)
             {
-                float motorTorque = _carSettings.AccelerationMultiplier * 50f * _throttleAxis;
+                float motorTorque = _carSettings.AccelerationMultiplier * _throttleAxis;
                 _wheelsHandler.ApplyBrakeTorque(0);
                 _wheelsHandler.ApplyMotorTorque(motorTorque);
             }
@@ -149,7 +146,8 @@ namespace MiniRace
             else IsDrifting = false;
 
             _wheelsHandler.ReduceTraction(_driftingAxis, _carSettings.HandbrakeDriftMultiplier);
-            ApplyBrakes();
+
+            if (!IsDrifting) ApplyBrakes();
             IsTractionLocked = true;
         }
 
@@ -192,6 +190,7 @@ namespace MiniRace
 
         protected override void ApplyBrakes()
         {
+            _wheelsHandler.ApplyMotorTorque(0);
             _wheelsHandler.ApplyBrakeTorque(_carSettings.BrakeForce);
         }
 
@@ -204,11 +203,11 @@ namespace MiniRace
             {
                 if (_throttleAxis > 0f)
                 {
-                    _throttleAxis -= Time.deltaTime * 10f;
+                    _throttleAxis -= 1;
                 }
                 else if (_throttleAxis < 0f)
                 {
-                    _throttleAxis += Time.deltaTime * 10f;
+                    _throttleAxis += 1;
                 }
 
                 if (Mathf.Abs(_throttleAxis) < 0.15f)
@@ -218,6 +217,7 @@ namespace MiniRace
             }
 
             _carRigidbody.linearVelocity *= 1f / (1f + (0.025f * _carSettings.DecelerationMultiplier));
+            //Debug.LogError(_carRigidbody.linearVelocity + " Ridge");
             _wheelsHandler.ApplyMotorTorque(0);
 
             if (_carRigidbody.linearVelocity.magnitude < 0.25f)

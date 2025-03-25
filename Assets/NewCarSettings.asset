@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b36cff38d0ca84a499efa48922992ee0, type: 3}
   m_Name: NewCarSettings
   m_EditorClassIdentifier: 
-  _maxSpeed: 186
-  _maxReverseSpeed: 120
-  _accelerationMultiplier: 1000
-  _decelerationMultiplier: 1
-  _maxSteeringAngle: 35
-  _steeringSpeed: 100
-  _brakeForce: 6000
-  _handbrakeDriftMultiplier: 10
+  _maxSpeed: 250
+  _maxReverseSpeed: 40
+  _accelerationMultiplier: 100
+  _decelerationMultiplier: 3
+  _maxSteeringAngle: 55
+  _steeringSpeed: 90
+  _brakeForce: 8000
+  _handbrakeDriftMultiplier: 12
   _bodyMassCenter: {x: 0, y: 0, z: 0}
