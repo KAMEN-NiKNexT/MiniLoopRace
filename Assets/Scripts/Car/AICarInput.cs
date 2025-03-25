@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
+using MiniRace.Control;
+using MiniRace.Environment;
+using MiniRace.Game;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Splines;
 
 namespace MiniRace
 {
-    public class AISplineCarInput : MonoBehaviour, ICarInput
+    public class AICarInput : MonoBehaviour, ICarInput, ICarPositionTracker
     {
         #region --- Members ---
 
@@ -19,18 +22,13 @@ namespace MiniRace
         [SerializeField] private float _avoidanceStrength = 0.7f;
         [SerializeField] private LayerMask _carLayerMask;
 
-        [SerializeField] private float _optimalRacingLineOffset = 3f;
-
-        [Header("Advanced Settings")]
-        [SerializeField] private float _minSpeedOnTurn = 0.6f;
-        [SerializeField] private float _maxBrakingAngle = 120f;
-
         private RaceCarController _carController;
         private float _steeringInput;
         private float _throttleInput;
         private bool _isHandbrakeActive;
-        private float _currentSpeedVariation;
         private List<Collider> _nearbyColliders = new List<Collider>();
+        private List<RoadSegment> _segments;
+        private int _currentSegmentIndex;
         private float _lastSteeringInput;
 
         #endregion
@@ -38,6 +36,7 @@ namespace MiniRace
         #region --- Events ---
 
         public event Action OnInputUpdated;
+        public event Action OnLapCompleted;
 
         #endregion
 
@@ -47,87 +46,31 @@ namespace MiniRace
         public float SteeringInput { get => _steeringInput; }
         public bool IsHandbrakeActive { get => _isHandbrakeActive; }
 
+        public int CurrentLap { get; private set; }
+        public int CurrentCheckpointIndex { get; private set; }
+        public float DistanceToNextCheckpoint { get; private set; }
+
         #endregion
 
         #region --- Mono Override Methods ---
 
-        private void Awake()
-        {
-            Initialize();
-        }
         private void Update()
         {
             UpdateInput();
         }
 
-        private void OnCollisionEnter(Collision collision)
-        {
-            //if (((1 << collision.gameObject.layer) & _carLayerMask) != 0)
-            //{
-            //    HandleCarCollision(collision);
-            //}
-        }
-
-        private void OnCollisionStay(Collision collision)
-        {
-            //// Продолжительный контакт с другими машинами
-            //if (((1 << collision.gameObject.layer) & _carLayerMask) != 0 && _aggressionFactor > 0.3f)
-            //{
-            //    ApplyContinuousCollisionResponse(collision);
-            //}
-        }
-
         #endregion
-
-        [Serializable]
-        public class RoadSegment
-        {
-            public Vector3 StartPoint;
-            public Vector3 EndPoint;
-            public Vector3 Tangent1;
-            public Vector3 Tangent2;
-            public float Angle;
-
-            public RoadSegment(float3 pos1, float3 pos2, float3 tan1, float3 tan2)
-            {
-                StartPoint = pos1;
-                EndPoint = pos2;
-                Tangent1 = new Vector3(tan1.x, tan1.y, tan1.z);
-                Tangent2 = new Vector3(tan2.x, tan2.y, tan2.z);
-                Angle = Vector3.Angle(Tangent1, Tangent2);
-            }
-
-        }
 
         #region --- ICarInput Implementation ---
 
         public void UpdateInput()
         {
-            //UpdateRacingLine();
-            UpdateTargetPoints();
+            TryUpdateRoadSegment();
             CheckForNearbyObstacles();
 
             CalculateSteeringInput();
             CalculateThrottleAndBrakeInput();
 
-            //if (_isRecovering)
-            //{
-            //    PerformRecovery();
-            //}
-            //else
-            //{
-            //    CalculateSteeringInput();
-            //    CalculateThrottleAndBrakeInput();
-            //
-            //    if (!_isPerformingAggressiveManeuver)
-            //    {
-            //        PerformAggressiveManeuversIfNeeded();
-            //    }
-            //
-            //    ApplyRealisticInputLimitations();
-            //}
-            //
-            //DetectOffTrackRecovery();
             OnInputUpdated?.Invoke();
         }
 
@@ -135,52 +78,26 @@ namespace MiniRace
 
         #region --- Control Methods ---
 
-        private void Initialize()
+        public void Initialize(List<RoadSegment> segments)
         {
             _carController = GetComponent<RaceCarController>();
-            _currentSpeedVariation = UnityEngine.Random.Range(-_maxRandomSpeedVariation, _maxRandomSpeedVariation);
+            _segments = segments;
 
-            CreateRoadSegments();
-        }
-        private void UpdateRacingLine()
-        {
-            //float a = UnityEngine.Random.value;
-            //if (a < 0.005f)
-            //{
-            //    Debug.LogError(a);
-            //    _targetPathOffset = Mathf.Lerp(_targetPathOffset, UnityEngine.Random.Range(-_optimalRacingLineOffset, _optimalRacingLineOffset), 0.1f);
-            //}
-        }
-        public List<RoadSegment> segs = new List<RoadSegment>();
-        private int _currentSegmentIndex;
-        private void CreateRoadSegments()
-        {
-            for (int i = 0; i < 20; i++)
-            {
-                float3 position, tangent, up;
-                _pathSpline.Evaluate(i / (20f + 1f), out position, out tangent, out up);
-
-                float3 position2, tangent2, up2;
-                _pathSpline.Evaluate((i + 1) / (20f + 1f), out position2, out tangent2, out up2);
-
-                segs.Add(new RoadSegment(position, position2, tangent, tangent2));
-                //Debug.DrawLine(position, position2, new Color(UnityEngine.Random.value, UnityEngine.Random.value, UnityEngine.Random.value), 50);
-            }
-            _currentSegmentIndex = 0;
+            RacePositionManager.Instance.RegisterCar(this);
         }
 
-        private void UpdateTargetPoints()
+        private void TryUpdateRoadSegment()
         {
             int nextValue = _currentSegmentIndex + 1;
-            if (nextValue > segs.Count - 1) nextValue = 0;
+            if (nextValue > _segments.Count - 1) nextValue = 0;
 
-            if (Vector3.Distance(transform.position, segs[_currentSegmentIndex].EndPoint) < _waypointReachedDistance)
+            DistanceToNextCheckpoint = Vector3.Distance(transform.position, _segments[_currentSegmentIndex].EndPoint);
+
+            if (DistanceToNextCheckpoint < _waypointReachedDistance || Vector3.Distance(transform.position, _segments[nextValue].EndPoint) < _waypointReachedDistance)
             {
                 _currentSegmentIndex = nextValue;
-            }
-            else if (Vector3.Distance(transform.position, segs[nextValue].EndPoint) < _waypointReachedDistance)
-            {
-                _currentSegmentIndex = nextValue;
+                CurrentCheckpointIndex = _currentSegmentIndex;
+                if (_currentSegmentIndex == 0) CurrentLap++;
             }
         }
 
@@ -201,14 +118,14 @@ namespace MiniRace
         private void CalculateSteeringInput()
         {
             // Направление до конца текущего сектора
-            Vector3 directionToSectorEnd = segs[_currentSegmentIndex].EndPoint - transform.position;
+            Vector3 directionToSectorEnd = _segments[_currentSegmentIndex].EndPoint - transform.position;
             float distanceToEnd = directionToSectorEnd.magnitude;
             Vector3 localDirectionToEnd = transform.InverseTransformDirection(directionToSectorEnd);
 
             // Получаем углы поворота в текущем и следующем секторах
-            float currentSectorAngle = segs[_currentSegmentIndex].Angle;
-            int nextSectorIndex = (_currentSegmentIndex + 1) % segs.Count;
-            float nextSectorAngle = segs[nextSectorIndex].Angle;
+            float currentSectorAngle = _segments[_currentSegmentIndex].TurnAngle;
+            int nextSectorIndex = (_currentSegmentIndex + 1) % _segments.Count;
+            float nextSectorAngle = _segments[nextSectorIndex].TurnAngle;
 
             // Рассчитываем угол поворота относительно машины
             float angleToEnd = Mathf.Atan2(localDirectionToEnd.x, localDirectionToEnd.z) * Mathf.Rad2Deg;
