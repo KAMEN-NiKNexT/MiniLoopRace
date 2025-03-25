@@ -2,6 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using MiniRace.Environment;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace MiniRace.Control
 {
@@ -17,13 +18,22 @@ namespace MiniRace.Control
         [Header("Settings")]
         [SerializeField] private int _targetFrameRate;
         [SerializeField] private int _delayBeforeStartRace;
+        [SerializeField] private int _lapAmount;
 
         #endregion
 
         #region --- Events ---
 
-        public event Action<int> OnGameStarting;
-        public event Action OnGameStarted;
+        public event Action<int> OnRaceStarting;
+        public event Action OnRaceStarted;
+        public event Action OnRaceFinished;
+
+        #endregion
+
+        #region --- Properties ---
+
+        public int LapAmount { get => _lapAmount; }
+        public bool IsRacing { get; private set; }
 
         #endregion
 
@@ -53,12 +63,23 @@ namespace MiniRace.Control
         {
             StartRace().Forget();
         }
+        public void CallRestartScene()
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+        public void CallFinishRace()
+        {
+            IsRacing = false;
+            OnRaceFinished?.Invoke();
+        }
+
         private async UniTask StartRace()
         {
-            OnGameStarting?.Invoke(_delayBeforeStartRace);
+            OnRaceStarting?.Invoke(_delayBeforeStartRace);
             await UniTask.WaitForSeconds(_delayBeforeStartRace);
 
-            OnGameStarted?.Invoke();
+            IsRacing = true;
+            OnRaceStarted?.Invoke();
         }
 
         #endregion

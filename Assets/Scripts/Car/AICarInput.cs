@@ -49,6 +49,7 @@ namespace MiniRace
         public int CurrentLap { get; private set; }
         public int CurrentCheckpointIndex { get; private set; }
         public float DistanceToNextCheckpoint { get; private set; }
+        public bool IsPlayer { get; private set; }
 
         #endregion
 
@@ -84,6 +85,7 @@ namespace MiniRace
             _segments = segments;
 
             RacePositionManager.Instance.RegisterCar(this);
+            IsPlayer = false;
         }
 
         private void TryUpdateRoadSegment()

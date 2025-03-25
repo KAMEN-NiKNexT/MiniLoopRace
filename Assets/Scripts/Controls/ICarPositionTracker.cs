@@ -9,6 +9,7 @@ namespace MiniRace.Game
         public int CurrentLap { get; }
         public int CurrentCheckpointIndex { get; }
         public float DistanceToNextCheckpoint { get; }
+        public bool IsPlayer { get; }
 
         #endregion
     }

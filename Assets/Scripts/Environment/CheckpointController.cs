@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using MiniRace.Control;
+using MiniRace.Game;
 using UnityEngine;
 
 namespace MiniRace.Environment
 {
-    public class CheckpointController : MonoBehaviour
+    public class CheckpointController : MonoBehaviour, ICarPositionTracker
     {
         #region --- Members ---
 
@@ -23,6 +24,15 @@ namespace MiniRace.Environment
 
         #endregion
 
+        #region --- Properties ---
+
+        public int CurrentLap { get; private set; }
+        public int CurrentCheckpointIndex { get; private set; }
+        public float DistanceToNextCheckpoint { get; private set; }
+        public bool IsPlayer { get; private set; }
+
+        #endregion
+
         #region --- Mono Override Methods ---
 
         private void Update()
@@ -37,13 +47,17 @@ namespace MiniRace.Environment
         public void Initialize(List<RoadSegment> roadSegments)
         {
             _roadSegments = roadSegments;
-            GameManager.Instance.OnGameStarted += EnableCheckPoint;
-            _checkPoint.transform.position = new Vector3(_roadSegments[_currentSegmentIndex].StartPoint.x, _checkPoint.transform.position.y, _roadSegments[_currentSegmentIndex].StartPoint.z);
+            GameManager.Instance.OnRaceStarted += () => _checkPoint.gameObject.SetActive(true);
+            GameManager.Instance.OnRaceFinished += () => _checkPoint.gameObject.SetActive(false);
+            _checkPoint.transform.position = new Vector3(_roadSegments[_currentSegmentIndex].EndPoint.x, _checkPoint.transform.position.y, _roadSegments[_currentSegmentIndex].EndPoint.z);
+
+            RacePositionManager.Instance.RegisterCar(this);
+            IsPlayer = true;
         }
         private void CheckForCheckpointClaim()
         {
-            float distanceToCheckpoint = Vector3.Distance(_playerCar.position, _roadSegments[_currentSegmentIndex].StartPoint);
-            if (distanceToCheckpoint < _distanceToClaimCheckPoint)
+            DistanceToNextCheckpoint = Vector3.Distance(_playerCar.position, _roadSegments[_currentSegmentIndex].EndPoint);
+            if (DistanceToNextCheckpoint < _distanceToClaimCheckPoint)
             {
                 ClaimCheckpoint();
             }
@@ -54,14 +68,12 @@ namespace MiniRace.Environment
             if (_currentSegmentIndex >= _roadSegments.Count)
             {
                 _currentSegmentIndex = 0;
-                OnLapCompleted?.Invoke();
+                CurrentLap++;
+                if (CurrentLap >= GameManager.Instance.LapAmount) GameManager.Instance.CallFinishRace();
             }
-            _checkPoint.transform.position = new Vector3(_roadSegments[_currentSegmentIndex].StartPoint.x, _checkPoint.transform.position.y, _roadSegments[_currentSegmentIndex].StartPoint.z);
+            CurrentCheckpointIndex = _currentSegmentIndex;
+            _checkPoint.transform.position = new Vector3(_roadSegments[_currentSegmentIndex].EndPoint.x, _checkPoint.transform.position.y, _roadSegments[_currentSegmentIndex].EndPoint.z);
             _checkPoint.Play();
-        }
-        private void EnableCheckPoint()
-        {
-            _checkPoint.gameObject.SetActive(true);
         }
 
         #endregion

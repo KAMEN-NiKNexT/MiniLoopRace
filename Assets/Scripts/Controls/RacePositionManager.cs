@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using MiniRace.Game;
-using UnityEngine;
 
 namespace MiniRace.Control
 {
@@ -10,12 +10,30 @@ namespace MiniRace.Control
 
         private List<ICarPositionTracker> _carTrackers = new List<ICarPositionTracker>();
 
+        #endregion
+
+        #region --- Events ---
+
+        public event Action<List<ICarPositionTracker>> OnCarsPositionUpdated;
+
+        #endregion
+
+        #region --- Mono Override Methods ---
+
+        private void Update()
+        {
+            SortCars();
+        }
+
+        #endregion
+
+        #region --- Control Methods ---
+
         public void RegisterCar(ICarPositionTracker carTracker)
         {
             _carTrackers.Add(carTracker);
         }
-
-        private void Update()
+        private void SortCars()
         {
             _carTrackers.Sort((a, b) =>
             {
@@ -27,7 +45,10 @@ namespace MiniRace.Control
 
                 return a.DistanceToNextCheckpoint.CompareTo(b.DistanceToNextCheckpoint);
             });
+
+            OnCarsPositionUpdated?.Invoke(_carTrackers);
         }
+
         #endregion
     }
 }

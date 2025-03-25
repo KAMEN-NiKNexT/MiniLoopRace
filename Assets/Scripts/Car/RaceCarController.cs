@@ -29,7 +29,12 @@ namespace MiniRace
         private float _localVelocityZ;
         private bool _isDecelerating;
         private CancellationTokenSource _cancelationTokenSource;
-        private bool _isCanMove;
+
+        #endregion
+
+        #region --- Properties ---
+
+        public float LocalVelocityZ { get => _localVelocityZ; }
 
         #endregion
 
@@ -73,7 +78,6 @@ namespace MiniRace
             _wheelsHandler.Initialize();
 
             _carInput.OnInputUpdated += UpdateCar;
-            GameManager.Instance.OnGameStarted += () => _isCanMove = true;
         }
         protected override void Accelerate(float throttleInput)
         {
@@ -182,7 +186,7 @@ namespace MiniRace
         }
         protected void UpdateCar()
         {
-            if (!_isCanMove) return;
+            if (!GameManager.Instance.IsRacing) return;
 
             UpdateCarData();
             HandleInputs();

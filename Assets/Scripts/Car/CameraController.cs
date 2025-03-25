@@ -71,7 +71,7 @@ namespace MiniRace.Game
         }
         private void OnDestroy()
         {
-            GameManager.Instance.OnGameStarting -= CallMoveToGamingMode;
+            GameManager.Instance.OnRaceStarting -= CallMoveToGamingMode;
         }
 
         #endregion
@@ -80,7 +80,7 @@ namespace MiniRace.Game
 
         private void Initialize()
         {
-            GameManager.Instance.OnGameStarting += CallMoveToGamingMode;
+            GameManager.Instance.OnRaceStarting += CallMoveToGamingMode;
             AdjustState(StateType.Menu);
         }
         private void CallMoveToGamingMode(int delayBeforeStart)
