@@ -3,6 +3,7 @@ using System.Collections;
 using System.Threading;
 using Car;
 using Cysharp.Threading.Tasks;
+using MiniRace.Control;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -28,6 +29,7 @@ namespace MiniRace
         private float _localVelocityZ;
         private bool _isDecelerating;
         private CancellationTokenSource _cancelationTokenSource;
+        private bool _isCanMove;
 
         #endregion
 
@@ -71,6 +73,7 @@ namespace MiniRace
             _wheelsHandler.Initialize();
 
             _carInput.OnInputUpdated += UpdateCar;
+            GameManager.Instance.OnGameStarted += () => _isCanMove = true;
         }
         protected override void Accelerate(float throttleInput)
         {
@@ -176,6 +179,8 @@ namespace MiniRace
         }
         protected void UpdateCar()
         {
+            if (!_isCanMove) return;
+
             UpdateCarData();
             HandleInputs();
             _wheelsHandler.AnimateWheelMeshes();

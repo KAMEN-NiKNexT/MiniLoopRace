@@ -1,0 +1,100 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &2880883130406061106
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2261758974215233561, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: m_Name
+      value: AIDodge Variant
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935153814814136287, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: _carSettings
+      value: 
+      objectReference: {fileID: 11400000, guid: 15c75b17fc061bc4cbb82e0576c47e1e, type: 2}
+    - target: {fileID: 3486519980255523412, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: d2344366b80fe3d4f886ec412e0174fa, type: 2}
+    - target: {fileID: 3856774635725197200, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 37.72
+      objectReference: {fileID: 0}
+    - target: {fileID: 3856774635725197200, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.043
+      objectReference: {fileID: 0}
+    - target: {fileID: 3856774635725197200, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -18.98
+      objectReference: {fileID: 0}
+    - target: {fileID: 3856774635725197200, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.9999556
+      objectReference: {fileID: 0}
+    - target: {fileID: 3856774635725197200, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3856774635725197200, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.009424611
+      objectReference: {fileID: 0}
+    - target: {fileID: 3856774635725197200, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3856774635725197200, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3856774635725197200, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 1.08
+      objectReference: {fileID: 0}
+    - target: {fileID: 3856774635725197200, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 6434079194503226792, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2261758974215233561, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+      insertIndex: 1
+      addedObject: {fileID: 2217228811658423793}
+  m_SourcePrefab: {fileID: 100100000, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+--- !u!1 &4078451725212738603 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2261758974215233561, guid: 2cb7e380c0271b1419914e44a3028a0e, type: 3}
+  m_PrefabInstance: {fileID: 2880883130406061106}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2217228811658423793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4078451725212738603}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d02f44fe790370442b901013c586f849, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _pathSpline: {fileID: 0}
+  _maxRandomSpeedVariation: 0.1
+  _waypointReachedDistance: 8
+  _collisionDetectionDistance: 16
+  _avoidanceStrength: 0.33
+  _carLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  _optimalRacingLineOffset: 0
+  _minSpeedOnTurn: 0.06
+  _maxBrakingAngle: 25
+  segs: []

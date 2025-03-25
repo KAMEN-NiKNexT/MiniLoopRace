@@ -262,14 +262,12 @@ namespace MiniRace
                 Vector3 localObstacleDir = transform.InverseTransformDirection(directionToObstacle);
                 float side = Mathf.Sign(localObstacleDir.x);
 
-                // Более интенсивное избегание при приближении
                 float proximityFactor = 1 - Mathf.Clamp01(distance / _collisionDetectionDistance);
                 float forwardProximityScale = Mathf.Clamp01(localObstacleDir.z); // Сильнее реагируем на близкие по Z препятствия
                 float strength = _avoidanceStrength * proximityFactor * proximityFactor * forwardProximityScale;
 
                 avoidanceModifier -= side * strength;
             }
-            Debug.Log(Mathf.Clamp(avoidanceModifier, -1f, 1f));
             return Mathf.Clamp(avoidanceModifier, -1f, 1f);
         }
 
