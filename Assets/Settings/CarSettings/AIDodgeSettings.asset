@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _maxSpeed: 250
   _maxReverseSpeed: 40
-  _accelerationMultiplier: 105
+  _accelerationMultiplier: 95
   _decelerationMultiplier: 3
   _maxSteeringAngle: 55
   _steeringSpeed: 90
