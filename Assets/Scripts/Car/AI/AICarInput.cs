@@ -13,19 +13,19 @@ namespace MiniRace
     {
         #region --- Members ---
 
-        [Header("Spline Settings")]
-        [SerializeField] private SplineContainer _pathSpline;
-        [SerializeField] private float _maxRandomSpeedVariation = 0.2f;
-        [SerializeField] private float _waypointReachedDistance = 3f;
-
-        [SerializeField] private float _collisionDetectionDistance = 6f;
-        [SerializeField] private float _avoidanceStrength = 0.7f;
+        [Header("Settings")]
+        [SerializeField] private float _waypointReachedDistance;
+        [SerializeField] private float _collisionDetectionDistance;
+        [SerializeField] private float _avoidanceStrength;
         [SerializeField] private LayerMask _carLayerMask;
+        [SerializeField] private float _minSteeringValueForAvoidance;
+        [SerializeField][Range(0f, 1f)] private float _steeringLerpFactor;
 
-        private RaceCarController _carController;
+        [Header("Variables")]
         private float _steeringInput;
         private float _throttleInput;
         private bool _isHandbrakeActive;
+        private RaceCarController _carController;
         private List<Collider> _nearbyColliders = new List<Collider>();
         private List<RoadSegment> _segments;
         private int _currentSegmentIndex;
@@ -87,7 +87,6 @@ namespace MiniRace
             RacePositionManager.Instance.RegisterCar(this);
             IsPlayer = false;
         }
-
         private void TryUpdateRoadSegment()
         {
             int nextValue = _currentSegmentIndex + 1;
@@ -102,7 +101,6 @@ namespace MiniRace
                 if (_currentSegmentIndex == 0) CurrentLap++;
             }
         }
-
         private void CheckForNearbyObstacles()
         {
             _nearbyColliders.Clear();
@@ -116,73 +114,51 @@ namespace MiniRace
                 }
             }
         }
-
         private void CalculateSteeringInput()
         {
-            // Направление до конца текущего сектора
             Vector3 directionToSectorEnd = _segments[_currentSegmentIndex].EndPoint - transform.position;
             float distanceToEnd = directionToSectorEnd.magnitude;
             Vector3 localDirectionToEnd = transform.InverseTransformDirection(directionToSectorEnd);
 
-            // Получаем углы поворота в текущем и следующем секторах
             float currentSectorAngle = _segments[_currentSegmentIndex].TurnAngle;
             int nextSectorIndex = (_currentSegmentIndex + 1) % _segments.Count;
             float nextSectorAngle = _segments[nextSectorIndex].TurnAngle;
 
-            // Рассчитываем угол поворота относительно машины
             float angleToEnd = Mathf.Atan2(localDirectionToEnd.x, localDirectionToEnd.z) * Mathf.Rad2Deg;
-
-            // Влияние следующего сектора увеличивается при приближении к концу текущего
             float blendFactor = Mathf.Clamp01(1 - (distanceToEnd / (_waypointReachedDistance * 5)));
-
-            // Учитываем скорость - чем быстрее едем, тем сильнее поворачиваем
             float speedInfluence = Mathf.Clamp01(_carController.CurrentSpeed / 30f);
-
-            // Смешиваем углы текущего и следующего секторов
             float targetAngle = Mathf.Lerp(currentSectorAngle, nextSectorAngle, blendFactor);
 
-            // Применяем финальный поворот с учетом скорости
             float steeringMultiplier = Mathf.Lerp(0.5f, 1.5f, speedInfluence);
             float rawSteeringAmount = Mathf.Clamp(angleToEnd * steeringMultiplier / 45f, -1f, 1f);
 
-            // Визуальная отладка
-            //Debug.DrawRay(transform.position, directionToSectorEnd, Color.red, 0.1f);
-            //Debug.DrawRay(transform.position, transform.forward * 5f, Color.blue, 0.1f);
-
-            // Применяем избегание препятствий и сглаживание поворота
             float avoidanceModifier = 0;
-            if (rawSteeringAmount >= -0.3f && rawSteeringAmount <= 0.3f) avoidanceModifier = CalculateAvoidanceModifier();
+            if (rawSteeringAmount >= -_minSteeringValueForAvoidance && rawSteeringAmount <= _minSteeringValueForAvoidance) avoidanceModifier = CalculateAvoidanceModifier();
 
             rawSteeringAmount = Mathf.Clamp(rawSteeringAmount + avoidanceModifier, -1f, 1f);
-            _steeringInput = Mathf.Lerp(_lastSteeringInput, rawSteeringAmount, 0.9f);
+            _steeringInput = Mathf.Lerp(_lastSteeringInput, rawSteeringAmount, _steeringLerpFactor);
             _lastSteeringInput = _steeringInput;
         }
-        private float _val;
         private void CalculateThrottleAndBrakeInput()
         {
             _throttleInput = 1 - Mathf.Abs(_steeringInput);
         }
-
-
         private float CalculateAvoidanceModifier()
         {
             float avoidanceModifier = 0;
 
-            // Учет препятствий
             foreach (var collider in _nearbyColliders)
             {
                 Vector3 directionToObstacle = collider.transform.position - transform.position;
                 float distance = directionToObstacle.magnitude;
 
-                // Игнорируем машины позади
-                if (Vector3.Dot(transform.forward, directionToObstacle) < 0)
-                    continue;
+                if (Vector3.Dot(transform.forward, directionToObstacle) < 0) continue;
 
                 Vector3 localObstacleDir = transform.InverseTransformDirection(directionToObstacle);
                 float side = Mathf.Sign(localObstacleDir.x);
 
                 float proximityFactor = 1 - Mathf.Clamp01(distance / _collisionDetectionDistance);
-                float forwardProximityScale = Mathf.Clamp01(localObstacleDir.z); // Сильнее реагируем на близкие по Z препятствия
+                float forwardProximityScale = Mathf.Clamp01(localObstacleDir.z);
                 float strength = _avoidanceStrength * proximityFactor * proximityFactor * forwardProximityScale;
 
                 avoidanceModifier -= side * strength;

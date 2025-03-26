@@ -18,6 +18,10 @@ namespace MiniRace
 
         [Header("Settings")]
         [SerializeField] private float _valueForDrift;
+        [SerializeField] private float _decelerationFactor;
+        [SerializeField] private float _decelerationTimeStep;
+        [SerializeField] private float _velocityMagnitudeForStop;
+        [SerializeField] private float _stopDriftingFactor;
 
         [Header("Variables")]
         private Rigidbody _carRigidbody;
@@ -147,7 +151,7 @@ namespace MiniRace
         {
             CancelInvoke(nameof(RecoverTraction));
 
-            _driftingAxis = _driftingAxis + Time.deltaTime;
+            _driftingAxis += Time.deltaTime;
             _driftingAxis = Mathf.Min(_driftingAxis, 1f);
 
             if (Mathf.Abs(_localVelocityX) > _valueForDrift) IsDrifting = true;
@@ -164,7 +168,7 @@ namespace MiniRace
         {
             IsTractionLocked = false;
 
-            _driftingAxis -= Time.deltaTime / 1.5f;
+            _driftingAxis -= Time.deltaTime / _stopDriftingFactor;
             _driftingAxis = Mathf.Max(_driftingAxis, 0f);
 
             if (_driftingAxis > 0)
@@ -213,14 +217,8 @@ namespace MiniRace
 
             if (_throttleAxis != 0f)
             {
-                if (_throttleAxis > 0f)
-                {
-                    _throttleAxis -= 1;
-                }
-                else if (_throttleAxis < 0f)
-                {
-                    _throttleAxis += 1;
-                }
+                if (_throttleAxis > 0f) _throttleAxis -= 1;
+                else if (_throttleAxis < 0f) _throttleAxis += 1;
 
                 if (Mathf.Abs(_throttleAxis) < 0.15f)
                 {
@@ -228,11 +226,10 @@ namespace MiniRace
                 }
             }
 
-            _carRigidbody.linearVelocity *= 1f / (1f + (0.025f * _carSettings.DecelerationMultiplier));
-            //Debug.LogError(_carRigidbody.linearVelocity + " Ridge");
+            _carRigidbody.linearVelocity *= 1f / (1f + (_decelerationFactor * _carSettings.DecelerationMultiplier));
             _wheelsHandler.ApplyMotorTorque(0);
 
-            if (_carRigidbody.linearVelocity.magnitude < 0.25f)
+            if (_carRigidbody.linearVelocity.magnitude < _velocityMagnitudeForStop)
             {
                 _carRigidbody.linearVelocity = Vector3.zero;
                 _isDecelerating = false;
@@ -253,7 +250,7 @@ namespace MiniRace
             while (_isDecelerating)
             {
                 DecelerateCar();
-                await UniTask.WaitForSeconds(0.1f, cancellationToken: _cancelationTokenSource.Token);
+                await UniTask.WaitForSeconds(_decelerationTimeStep, cancellationToken: _cancelationTokenSource.Token);
             }
         }
         private void StopDeceleration()

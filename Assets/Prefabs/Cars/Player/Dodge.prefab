@@ -182,7 +182,7 @@ GameObject:
   - component: {fileID: 2935153814814136287}
   - component: {fileID: 7450703637363026906}
   - component: {fileID: 8782069303778890380}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Dodge
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -234,7 +234,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _carSettings: {fileID: 11400000, guid: f5a43c72f11b8de4d8d1a86c48c7a231, type: 2}
   _wheelsHandler: {fileID: 7450703637363026906}
-  _valueForDrift: 0.6
+  _valueForDrift: 0.65
+  _decelerationFactor: 0.025
+  _decelerationTimeStep: 0.1
+  _velocityMagnitudeForStop: 0.25
+  _stopDriftingFactor: 1.5
 --- !u!114 &7450703637363026906
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -36,12 +36,8 @@ namespace MiniRace
                     _steeringWheels.Add(_wheels[i]);
                 }
 
-                // Инициализация эффектов для каждого колеса
                 if (_wheels[i].DriftEffect != null) _wheels[i].DriftEffect.Stop();
-                if (_wheels[i].Skid != null)
-                {
-                    _wheels[i].Skid.emitting = false;
-                }
+                if (_wheels[i].Skid != null) _wheels[i].Skid.emitting = false;
             }
         }
 
@@ -49,20 +45,11 @@ namespace MiniRace
         {
             for (int i = 0; i < _wheels.Length; i++)
             {
-                // Управление частицами дрифта
                 if (_wheels[i].DriftEffect != null)
                 {
-                    if (isDrifing)
-                    {
-                        _wheels[i].DriftEffect.Play();
-                    }
-                    else
-                    {
-                        _wheels[i].DriftEffect.Stop();
-                    }
+                    if (isDrifing) _wheels[i].DriftEffect.Play();
+                    else _wheels[i].DriftEffect.Stop();
                 }
-
-                // Управление следами от шин
                 if (_wheels[i].Skid != null)
                 {
                     _wheels[i].Skid.emitting = isDrifing;
@@ -85,15 +72,6 @@ namespace MiniRace
                 return 2 * Mathf.PI * _wheels[0].Collider.radius * _wheels[0].Collider.rpm * 60 / 1000;
             }
             return 0f;
-        }
-        private void Update()
-        {
-            for (int i = 0; i < _wheels.Length; i++)
-            {
-                //Debug.LogError(_wheels[i].Collider.motorTorque + " motorTorque " + i);
-                //Debug.LogError(_wheels[i].Collider.brakeTorque + " brakeTorque " + i);
-                //Debug.LogError(_wheels[i].Collider.rpm + " rpm " + i);
-            }
         }
         private void Turn(float direction, float steeringSpeed, int maxSteeringAngle)
         {

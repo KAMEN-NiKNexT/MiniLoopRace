@@ -86,15 +86,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d02f44fe790370442b901013c586f849, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _pathSpline: {fileID: 0}
-  _maxRandomSpeedVariation: 0.1
   _waypointReachedDistance: 8
   _collisionDetectionDistance: 16
   _avoidanceStrength: 0.33
   _carLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
-  _optimalRacingLineOffset: 0
-  _minSpeedOnTurn: 0.06
-  _maxBrakingAngle: 25
-  segs: []
+    m_Bits: 192
+  _minSteeringValueForAvoidance: 0.3
+  _steeringLerpFactor: 0.92

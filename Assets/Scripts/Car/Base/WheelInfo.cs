@@ -75,7 +75,7 @@ namespace MiniRace
                 _wheelCollider.GetWorldPose(out position, out rotation);
 
                 _wheelMesh.transform.position = position;
-                _wheelMesh.transform.rotation = rotation;
+                _wheelMesh.transform.rotation = Quaternion.Lerp(_wheelMesh.transform.rotation, rotation, Time.deltaTime * 10f);
             }
         }
 
